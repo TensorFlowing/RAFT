@@ -65,11 +65,14 @@ def demo(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', help="restore checkpoint")
-    parser.add_argument('--path', help="dataset for evaluation")
+    parser.add_argument('--model', default="models/raft-things.pth", help="restore checkpoint")
+    parser.add_argument('--path', default="data_abel", help="dataset for evaluation")
     parser.add_argument('--small', action='store_true', help='use small model')
     parser.add_argument('--mixed_precision', action='store_true', help='use mixed precision')
     parser.add_argument('--alternate_corr', action='store_true', help='use efficent correlation implementation')
     args = parser.parse_args()
 
     demo(args)
+
+    #1 Default demo: python demo.py --model=models/raft-things.pth --path=demo-frames
+    #2 Abel street data: python demo.py --model=models/raft-things.pth --path=data_abel
