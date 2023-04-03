@@ -8,6 +8,7 @@ import glob
 import numpy as np
 import torch
 from PIL import Image
+import matplotlib.pyplot as plt
 
 from raft import RAFT
 from utils import flow_viz
@@ -23,7 +24,7 @@ lk_params = dict( winSize  = (21, 21),
                   criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 # Create some random colors
 # color = np.random.randint(0, 255, (100, 3))
-color = np.zeros((100, 3))
+color = np.zeros((10000, 3))
 color[:, 0] = 255
 
 def load_image(imfile):
@@ -46,14 +47,13 @@ def load_image_gray(imfile):
 def viz(img, flo, kp1, kp2):
     img = img[0].permute(1,2,0).cpu().numpy()
     flo = flo[0].permute(1,2,0).cpu().numpy()
-    
-    # map flow to rgb image
-    flo = flow_viz.flow_to_image(flo)
-    
-    # import matplotlib.pyplot as plt
-    # plt.imshow(img_flo / 255.0)
+    # flo_x_y = np.hstack((flo[:,:,0], flo[:,:,1]))
+    # plt.imshow(flo_x_y)
     # plt.show()
 
+    # map flow to rgb image
+    flo = flow_viz.flow_to_image(flo)
+    # print("flo.shape: ", flo.shape)
 
     # draw the tracks
     img = img.astype(np.uint8)
@@ -66,10 +66,14 @@ def viz(img, flo, kp1, kp2):
 
     img = cv2.add(img, mask)
 
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # img_flo = np.concatenate([img, flo], axis=0)
+    # cv2.imshow('image', img_flo/255.0)
+    # cv2.waitKey()
+    
     img_flo = np.concatenate([img, flo], axis=0)
-    cv2.imshow('image', img_flo/255.0)
-    cv2.waitKey()
+    plt.imshow(img_flo / 255.0)
+    plt.show()
 
 
 def demo(args):
@@ -88,28 +92,33 @@ def demo(args):
         for imfile1, imfile2 in zip(images[:-1], images[1:]):
             image1_t, image1_np = load_image(imfile1)
             image2_t, image2_np = load_image(imfile2)
-            print("image1_np.shape: ", image1_np.shape)
+            # print("image1_np.shape: ", image1_np.shape)
             # Get FAST features
-            # fast = cv2.FastFeatureDetector_create()
-            # kp1 = fast.detect(image1_np, None)
+            fast = cv2.FastFeatureDetector_create(threshold=50, nonmaxSuppression=True)
+            kp1 = fast.detect(image1_np, None)
+            kp1 = cv2.KeyPoint_convert(kp1)
             # print(kp1)
 
-            image1_gray_np = image1_np[:,:,1]
-            image2_gray_np = image2_np[:,:,1]
+
             # Get GFTT
-            feature_params = dict( maxCorners = 100,
-                       qualityLevel = 0.3,
-                       minDistance = 7,
-                       blockSize = 7 )
-            kp1 = cv2.goodFeaturesToTrack(image1_gray_np, mask = None,
-                             **feature_params)
+            # feature_params = dict( maxCorners = 100,
+            #            qualityLevel = 0.3,
+            #            minDistance = 7,
+            #            blockSize = 7 )
+            # kp1 = cv2.goodFeaturesToTrack(image1_gray_np, mask = None,
+            #                  **feature_params)
+            # print(kp1)
 
             # Calculate optical flow
+            image1_gray_np = image1_np[:,:,1]
+            image2_gray_np = image2_np[:,:,1]
             kp2, st, err = cv2.calcOpticalFlowPyrLK(image1_gray_np, image2_gray_np, kp1, None, **lk_params)
-            # # Select good points
-            # if p1 is not None:
-            #     good_new = p1[st==1]
-            #     good_old = p0[st==1]
+            # Select good points
+            # print("kp1.shape: ", kp1.shape)
+            # print("st.shape: ", st.shape)
+            # print("(st==1).shape: ", (st==1).shape)
+            # print("kp1[st==1].shape: ", kp1[st==1].shape)
+
 
             padder = InputPadder(image1_t.shape)
             image1_t, image2_t = padder.pad(image1_t, image2_t)
